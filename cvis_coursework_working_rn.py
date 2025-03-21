@@ -501,20 +501,272 @@ Description...
 #### a) UNet-based end-to-end NN (TO FIX)
 """
 
-# import gc
-# import tensorflow as tf
-# gc.collect()
-# tf.keras.backend.clear_session()
+import gc
+import tensorflow as tf
+gc.collect()
+tf.keras.backend.clear_session()
 
 # Building and training the model
-
-
-from tensorflow.keras import layers, models, backend as K
-import pickle as pkl
 
 classesNum = 4 # number of output classes
 epochsNum = 2 # number of training epochs
 batchSize = 16
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+import pickle as pkl
+
+# Define the UNet architecture
+class UNet(nn.Module):
+    def __init__(self, num_classes=4):
+        super(UNet, self).__init__()
+
+        # Encoder
+        self.enc1 = self.conv_block(3, 64)
+        self.pool1 = nn.MaxPool2d(2)
+
+        self.enc2 = self.conv_block(64, 128)
+        self.pool2 = nn.MaxPool2d(2)
+
+        self.enc3 = self.conv_block(128, 256)
+        self.pool3 = nn.MaxPool2d(2)
+
+        self.enc4 = self.conv_block(256, 512)
+
+        # Decoder
+        self.up5 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.dec5 = self.conv_block(512, 256)
+
+        self.up6 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
+        self.dec6 = self.conv_block(256, 128)
+
+        self.up7 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+        self.dec7 = self.conv_block(128, 64)
+
+        # Final output layer
+        self.final_conv = nn.Conv2d(64, num_classes, kernel_size=1)
+
+    def conv_block(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        # Encoder
+        c1 = self.enc1(x)
+        p1 = self.pool1(c1)
+
+        c2 = self.enc2(p1)
+        p2 = self.pool2(c2)
+
+        c3 = self.enc3(p2)
+        p3 = self.pool3(c3)
+
+        c4 = self.enc4(p3)
+
+        # Decoder
+        u5 = self.up5(c4)
+        u5 = torch.cat([u5, c3], dim=1)
+        c5 = self.dec5(u5)
+
+        u6 = self.up6(c5)
+        u6 = torch.cat([u6, c2], dim=1)
+        c6 = self.dec6(u6)
+
+        u7 = self.up7(c6)
+        u7 = torch.cat([u7, c1], dim=1)
+        c7 = self.dec7(u7)
+
+        outputs = self.final_conv(c7)
+
+        return outputs
+
+# Define hyperparameters
+epochs = 100 
+batch_size = 16
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Initialize model, optimizer, and loss function
+model = UNet(num_classes=4).to(device)
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
+criterion = nn.CrossEntropyLoss()
+
+
+# Evaluation
+def evaluate(model, test_loader):
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for images, masks in test_loader:
+            images, masks = images.to(device), masks.to(device)
+            outputs = model(images)
+            predictions = torch.argmax(outputs, dim=1)
+            correct += (predictions == masks).sum().item()
+            total += masks.numel()
+
+    accuracy = correct / total
+    print(f"Test Accuracy: {accuracy:.4f}")
+
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+from PIL import Image
+import torch
+
+class UNetDataset(Dataset):
+    def __init__(self, image_files, mask_files, transform=None, target_transform=None, max_images=100):
+        self.image_files = image_files  # Limit to first 100 images
+        self.mask_files = mask_files  # Limit to first 100 masks
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        img_path = self.image_files[idx]
+        label_path = self.image_files[idx].replace('.jpg', '.png').replace('color', 'label')
+        image = Image.open(img_path).convert('RGB')
+        label = Image.open(label_path).convert('L')  # Load label as grayscale
+
+        if self.transform:
+            image = self.transform(image)
+            
+        label = label.resize((256, 256), Image.NEAREST)
+
+        # Convert label to tensor
+        label = torch.tensor(np.array(label), dtype=torch.long)  # Shape: (H, W)
+
+        # # Map pixel values to class indices
+        label = torch.where(label == 38, 1, label)
+        label = torch.where(label == 75, 2, label)
+        label = torch.where(label == 255, 3, label)
+        label = torch.where(label == 0, 0, label)  # Ensure 0 stays as class 0
+
+        # mapping = {38: 1, 75: 2, 255: 0, 0: 0}
+        # label = torch.tensor(np.vectorize(mapping.get)(np.array(label)), dtype=torch.long)
+
+        
+
+        return image, label  # No one-hot encoding
+
+# Define transformations
+image_transform = transforms.Compose([
+    transforms.Resize((256, 256)),
+    transforms.ToTensor()
+])
+
+
+
+# Load dataset with first 100 images
+train_dataset = UNetDataset(train_images, train_masks, transform=image_transform, target_transform=None, max_images=100)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+val_dataset = UNetDataset(val_images, val_masks, transform=image_transform, target_transform=None, max_images=100)
+val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+
+test_dataset = UNetDataset(test_images, test_masks, transform=image_transform, target_transform=None, max_images=100)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from tqdm import tqdm
+import pickle as pkl
+
+# Define the training function
+def train_unet(model, train_loader, val_loader, epochs=2, model_save_path="/home/s2677266/CVis/Data/Output/Models/", device="cuda" if torch.cuda.is_available() else "cpu"):
+    model.to(device)
+    criterion = nn.CrossEntropyLoss()  # For multi-class segmentation
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    for epoch in range(epochs):
+        model.train()
+        epoch_loss = 0
+        for images, masks in tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}"):
+            images, masks = images.to(device), masks.long().squeeze(1).to(device)  # Ensure correct shape
+            
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = criterion(outputs, masks)
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+
+        print(f"Epoch {epoch+1}/{epochs}, Training Loss: {epoch_loss / len(train_loader):.4f}")
+
+        # Validation
+        model.eval()
+        val_loss = 0
+        with torch.no_grad():
+            for images, masks in val_loader:
+                images, masks = images.to(device), masks.long().squeeze(1).to(device)
+                outputs = model(images)
+                loss = criterion(outputs, masks)
+                val_loss += loss.item()
+        
+        print(f"Epoch {epoch+1}/{epochs}, Validation Loss: {val_loss / len(val_loader):.4f}")
+
+        # Save model after each epoch
+        epoch_model_path = f"{model_save_path}unet_model_epoch_{epoch+1}.pth"
+        torch.save(model.state_dict(), epoch_model_path)
+        print(f"Model saved at {epoch_model_path}")
+
+    print("Training complete!")
+
+# Define the testing function
+def test_unet(model, test_loader, device="cuda" if torch.cuda.is_available() else "cpu"):
+    model.to(device)
+    model.eval()
+    test_loss = 0
+    criterion = nn.CrossEntropyLoss()
+
+    with torch.no_grad():
+        for images, masks in test_loader:
+            images, masks = images.to(device), masks.long().squeeze(1).to(device)
+            outputs = model(images)
+            loss = criterion(outputs, masks)
+            test_loss += loss.item()
+
+    print(f"Test Loss: {test_loss / len(test_loader):.4f}")
+
+# Call the training function
+train_unet(model, train_loader, val_loader, epochs=100)
+
+# Evaluate on the test set
+test_unet(model, test_loader)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 '''
 def crop_and_concat(target, reference):
     """Ensures target tensor matches the shape of reference tensor before concatenation."""
@@ -708,7 +960,13 @@ visualize_prediction(image, mask, prediction[0])
 
 #     # Save the model after each epoch
 #     torch.save(autoencoder.state_dict(), f'Data/Output/Models/autoencoder_epoch_{epoch+1}.pth')
-"""
+
+
+
+# WORKING PART B
+
+
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -757,6 +1015,8 @@ class Autoencoder(nn.Module):
         x = self.decoder(x)
         return x
     
+    
+  # Below is the code to train the autoencoder  
     """
     
     
@@ -963,33 +1223,95 @@ scheduler = torch.optim.lr_scheduler.StepLR(segmentation_optimizer, step_size=3,
 '''
 
 """
+
+
+
 # Define the Segmentation Decoder
+# class SegmentationDecoder(nn.Module):
+#     def __init__(self, encoder):
+#         super(SegmentationDecoder, self).__init__()
+#         self.encoder = encoder
+#         for param in self.encoder.parameters():
+#             param.requires_grad = False  # Freeze encoder
+        
+#         self.decoder = nn.Sequential(
+#             nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
+#             nn.BatchNorm2d(128),
+#             nn.ReLU(),
+#             nn.Dropout(0.2),
+
+#             nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
+#             nn.BatchNorm2d(64),
+#             nn.ReLU(),
+#             nn.Dropout(0.2),
+
+#             nn.Conv2d(64, 32, kernel_size=3, stride=1, padding=1),
+#             nn.BatchNorm2d(32),
+#             nn.ReLU(),
+
+#             nn.Conv2d(32, 3, kernel_size=1)  # Final output layer (logits)
+#         )
+
+#     def forward(self, x):
+#         x = self.encoder(x)
+#         x = self.decoder(x)
+#         return x  # Direct logits output
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+
+# Residual Block
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(ResidualBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        residual = x
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.bn2(self.conv2(x))
+        x += residual  # Skip connection
+        return self.relu(x)
+
+# Enhanced Segmentation Decoder
 class SegmentationDecoder(nn.Module):
     def __init__(self, encoder):
         super(SegmentationDecoder, self).__init__()
-        self.encoder = encoder
-        for param in self.encoder.parameters():
-            param.requires_grad = False  # Freeze encoder
         
+        # Partially freeze encoder (freeze first few layers, fine-tune deeper ones)
+        for param in list(encoder.parameters())[:4]:  # Adjust layers to freeze
+            param.requires_grad = False
+        
+        self.encoder = encoder
+
+        # Decoder with residual blocks and skip connections
         self.decoder = nn.Sequential(
-            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-            nn.ConvTranspose2d(128, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-            nn.Conv2d(64, 4, kernel_size=3, stride=1, padding=1)  # No activation
+            nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
+            ResidualBlock(128, 128),
+            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
+            ResidualBlock(64, 64),
+            nn.Conv2d(64, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(32, 3, kernel_size=1)  # Output logits
         )
 
     def forward(self, x):
         x = self.encoder(x)
         x = self.decoder(x)
-        return x  # Direct logits output
+        return x
+
 
 
 # Custom Dataset for loading images and labels
 class SegmentationDataset(Dataset):
-    def __init__(self, image_files, label_files, transform=None, max_images=100):
+    def __init__(self, image_files, label_files, transform=None):
         self.image_files = image_files
         self.label_files = label_files
         self.transform = transform
@@ -1012,11 +1334,15 @@ class SegmentationDataset(Dataset):
         # Convert label to tensor
         label = torch.tensor(np.array(label), dtype=torch.long)  # Shape: (H, W)
 
-        # Map pixel values to class indices
-        label = torch.where(label == 38, 1, label)
-        label = torch.where(label == 75, 2, label)
-        label = torch.where(label == 255, 3, label)
-        label = torch.where(label == 0, 0, label)  # Ensure 0 stays as class 0
+        # # Map pixel values to class indices
+        # label = torch.where(label == 38, 1, label)
+        # label = torch.where(label == 75, 2, label)
+        # label = torch.where(label == 255, 0, label)
+        # label = torch.where(label == 0, 0, label)  # Ensure 0 stays as class 0
+
+        mapping = {38: 1, 75: 2, 255: 0, 0: 0}
+        label = torch.tensor(np.vectorize(mapping.get)(np.array(label)), dtype=torch.long)
+
         
 
         return image, label  # No one-hot encoding
@@ -1035,8 +1361,7 @@ transform = transforms.Compose([
 segmentation_dataset = SegmentationDataset(
     image_files=train_images,
     label_files=train_masks,
-    transform=transform,
-    max_images=100
+    transform=transform
 )
 segmentation_dataloader = DataLoader(segmentation_dataset, batch_size=batchSize, shuffle=True)
 
@@ -1052,43 +1377,45 @@ segmentation_model = SegmentationDecoder(autoencoder.encoder)
 #class_weights = torch.tensor([1.0, 1.0, 1.0, 1.0])  # Adjust these values as needed
 segmentation_criterion = nn.CrossEntropyLoss()#(weight=class_weights)
 # Example of class weights (higher weight for less frequent classes)
-segmentation_optimizer = optim.Adam(segmentation_model.decoder.parameters(), lr=1e-3)
+segmentation_optimizer = optim.Adam(segmentation_model.decoder.parameters(), lr=1e-3, weight_decay=1e-4)
 
 # Training the Segmentation Model
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 segmentation_model.to(device)
-scheduler = torch.optim.lr_scheduler.StepLR(segmentation_optimizer, step_size=3, gamma=0.5)
+# scheduler = torch.optim.lr_scheduler.StepLR(segmentation_optimizer, step_size=3, gamma=0.5)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(segmentation_optimizer, T_max=10, eta_min=1e-5)
 
+scaler = torch.cuda.amp.GradScaler()
 
+# num_epochs = 100
+# for epoch in range(num_epochs):
+#     print(f"Epoch [{epoch+1}/{num_epochs}] Running:")
+#     for images, labels in segmentation_dataloader:
+#         images, labels = images.to(device), labels.to(device)
 
-num_epochs = 60
-for epoch in range(num_epochs):
-    print(f"Epoch [{epoch+1}/{num_epochs}] Running:")
-    for images, labels in segmentation_dataloader:
-        images, labels = images.to(device), labels.to(device)
+#         segmentation_optimizer.zero_grad()
 
-        segmentation_optimizer.zero_grad()
+#         # Use autocast for mixed precision training
+#         with autocast():  
+#             outputs = segmentation_model(images)  # Forward pass
+#             loss = segmentation_criterion(outputs, labels)  # Compute loss
 
-        # Use autocast for mixed precision training
-        with autocast():  
-            outputs = segmentation_model(images)  # Forward pass
-            loss = segmentation_criterion(outputs, labels)  # Compute loss
+#         # Scale the loss and backpropagate
+#         scaler.scale(loss).backward()
 
-        # Scale the loss and backpropagate
-        scaler.scale(loss).backward()
-
-        # Step the optimizer with scaled gradients
-        scaler.step(segmentation_optimizer)
+#         # Step the optimizer with scaled gradients
+#         scaler.step(segmentation_optimizer)
         
-        # Update the scaler for next iteration
-        scaler.update()
+#         # Update the scaler for next iteration
+#         scaler.update()
         
-    scheduler = torch.optim.lr_scheduler.StepLR(segmentation_optimizer, step_size=5, gamma=0.5)
+#     scheduler.step()
+
 
       
-    print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
-    torch.save(segmentation_model.state_dict(), f'Data/Output/Models/updated_working_segmentation_model_epoch_{epoch+1}.pth')
+#     print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
+#     torch.save(segmentation_model.state_dict(), f'Data/Output/Models/improved_segmentation_model_epoch_{epoch+1}.pth')
 
 import matplotlib.pyplot as plt
 import torch
@@ -1166,7 +1493,7 @@ visualize_segmentation(sampleImg, sampleLabel)
 sampleImg = Image.open("Data/Output/Augmented/color/aug_Birman_159.jpg").convert('RGB')
 sampleLabel = Image.open("Data/Output/Augmented/label/aug_Birman_159.png").convert('L') # (grayscale)
 visualize_segmentation(sampleImg, sampleLabel)
-"""
+
 """#### c) CLIP (incomplete)"""
 
 # from transformers import CLIPProcessor, CLIPModel
@@ -1339,6 +1666,9 @@ visualize_segmentation(sampleImg, sampleLabel)
 
 # print("Training complete!")
 
+
+'''
+# WORKING CLIP
 
 import torch
 import torch.nn as nn
@@ -1541,7 +1871,7 @@ for epoch in range(num_epochs):
 
 print("Training complete!")
 
-
+'''
 
 
    
