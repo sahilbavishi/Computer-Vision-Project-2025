@@ -1407,20 +1407,29 @@ class SegmentationDataset(Dataset):
         img_path = self.image_files[idx]
         label_path = img_path.replace('.jpg', '.png').replace('color', 'label')
 
-        # Load CLIP feature tensor instead of raw image
-        image_name = img_path
-        clip_feature = self.clip_features_dict[image_name]  # Shape (512,)
+        # Load image
+        image = Image.open(img_path).convert("RGB")
+        if self.transform:
+            image = self.transform(image)  # Apply transformations
+        else:
+            image = transforms.ToTensor()(image)  # Convert manually if transform is None
 
+        # Load CLIP feature tensor
+        image_name = img_path
+        clip_feature = self.clip_features_dict[image_name]  # Shape: (512,)
+
+        # Load and process label
         label = Image.open(label_path).convert('L')
         label = label.resize((256, 256), Image.NEAREST)
         label = torch.tensor(np.array(label), dtype=torch.long)
 
+        # Convert label classes to match expected format
         label = torch.where(label == 38, 1, label)
         label = torch.where(label == 75, 2, label)
         label = torch.where(label == 255, 3, label)
         label = torch.where(label == 0, 0, label)
 
-        return clip_feature, label  # Use CLIP feature instead of image
+        return image, clip_feature, label  # Return both image & CLIP feature
 
 
 
@@ -1452,30 +1461,35 @@ class SegmentationDecoder(nn.Module):
     def __init__(self, clip_feature_dim=512, num_classes=4):
         super(SegmentationDecoder, self).__init__()
 
-        # CLIP feature integration layer
-        self.clip_fc = nn.Linear(clip_feature_dim, 256)  # Reduce CLIP feature size
+        # Project CLIP features
+        self.clip_fc = nn.Linear(clip_feature_dim, 128)  
 
-        # Convolutional layers for segmentation
-        # Modify the decoder to produce a 256x256 output
+        # CNN Feature Extractor
+        self.encoder = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+        )
+
+        # Decoder
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=1, padding=1),
+            nn.ConvTranspose2d(128 + 128, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),  # 64x64
-            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True),  # Now 256x256
-            nn.ConvTranspose2d(64, num_classes, kernel_size=3, stride=1, padding=1)  # Final output 256x256
+            nn.Upsample(size=(256, 256), mode='bilinear', align_corners=True),  # Ensure fixed output size
+            nn.ConvTranspose2d(64, num_classes, kernel_size=3, stride=1, padding=1),
         )
 
 
-    def forward(self, clip_features):
-        # Process CLIP features
-        clip_features = self.clip_fc(clip_features)  # Reduce dimension to [batch_size, 256]
-        clip_features = clip_features.view(clip_features.size(0), 256, 1, 1)  # Reshape to [batch_size, 256, 1, 1]
-        clip_features = clip_features.expand(-1, -1, 32, 32)  # Expand to spatial feature map [batch_size, 256, 32, 32]
+    def forward(self, image, clip_features):
+        cnn_features = self.encoder(image)
+        clip_features = self.clip_fc(clip_features).view(clip_features.shape[0], 128, 1, 1)
+        clip_features = clip_features.expand(-1, -1, cnn_features.shape[2], cnn_features.shape[3])
 
-        # Decode into segmentation mask
-        segmentation_output = self.decoder(clip_features)
+        fusion = torch.cat([cnn_features, clip_features], dim=1)
+        segmentation_output = self.decoder(fusion)
         return segmentation_output
 
 
@@ -1498,35 +1512,32 @@ for epoch in range(num_epochs):
 
     print(f"Epoch [{epoch+1}/{num_epochs}] Running:")
     
-    for clip_features, labels in segmentation_dataloader:
-        clip_features, labels = clip_features.to(device), labels.to(device)
-
-        # print(clip_features.shape)
-        # break
+    for images, clip_features, labels in segmentation_dataloader:  # Unpack correctly
+        images, clip_features, labels = images.to(device), clip_features.to(device), labels.to(device)
 
         segmentation_optimizer.zero_grad()
 
         # Mixed precision training
-        with torch.cuda.amp.autocast():
-            outputs = segmentation_model(clip_features)  # Forward pass
+        with torch.cuda.amp.autocast(): 
+            outputs = segmentation_model(images, clip_features)  # Now correctly passing 2 args
             loss = segmentation_criterion(outputs, labels)  # Compute loss
 
         # Scale the loss and backpropagate
         scaler.scale(loss).backward()
-
-        # Step the optimizer with scaled gradients
         scaler.step(segmentation_optimizer)
         scaler.update()
 
         running_loss += loss.item()
+
 
     scheduler.step()
     
     avg_loss = running_loss / len(segmentation_dataloader)
     print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}")
 
-    # Save model checkpoint
     torch.save(segmentation_model.state_dict(), f'Data/Output/Models/clip_segmentation_model_epoch_{epoch+1}.pth')
+
+
 
 print("Training complete!")
 
