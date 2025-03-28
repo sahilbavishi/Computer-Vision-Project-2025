@@ -126,7 +126,7 @@ if doResize:
             img_resized = img_resized.convert("RGB")
           img_resized.save(os.path.join(output_folder_resized_color, img_file), format="JPEG")
           i += 1
-  print(f"{i} images resized to {int(q3_width)}x{int(q3_height)} and saved in {output_folder_resized_color}")
+  print(f"{i} images resized to {int(q3_width)}x{int(q3_height)} and saved in {output_folder_resized_color}.")
 
 # Resizing labels
   imgResize = (int(q3_width), int(q3_height))
@@ -140,7 +140,7 @@ if doResize:
             img_resized = img_resized.convert("RGB")
           img_resized.save(os.path.join(output_folder_resized_label, img_file), format="PNG")
           i += 1
-  print(f"{i} labels resized to {int(q3_width)}x{int(q3_height)} and saved in {output_folder_resized_label}")
+  print(f"{i} labels resized to {int(q3_width)}x{int(q3_height)} and saved in {output_folder_resized_label}.")
 
 else:
   print("Using previously resized images and labels (500x500).")
@@ -179,7 +179,7 @@ augmentation = A.Compose([
 
 if doAugment:
     i = 0
-    print('Augmenting the data')
+    print('Augmenting the data...')
     for img_file in os.listdir(output_folder_resized_color):
         img_path = os.path.join(output_folder_resized_color, img_file)
         mask_filename = os.path.splitext(img_file)[0] + ".png"
@@ -190,7 +190,7 @@ if doAugment:
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
 
         if img is None or mask is None:
-            print(f"Skipping {img_file} as corresponding image or mask is missing.")
+            print(f"Skipping {img_file} as corresponding image or mask is missing!")
             continue
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -218,7 +218,7 @@ if doAugment:
 
         i += 1
 
-    print(f"{i} images and masks augmented, including originals, output saved in {output_folder_augmented_color} & {output_folder_augmented_label}")
+    print(f"{i} images and masks augmented, including originals, output saved in {output_folder_augmented_color} & {output_folder_augmented_label}.")
 
     # Computing the number of images needed to balance cats and dogs
     target_cat_count = 2492
@@ -246,7 +246,7 @@ if doAugment:
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
 
         if img is None or mask is None:
-            print(f"Skipping {img_file} as image or mask is missing.")
+            print(f"Skipping {img_file} as image or mask is missing!")
             continue
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
