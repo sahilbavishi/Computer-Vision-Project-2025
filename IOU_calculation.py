@@ -1,3 +1,7 @@
+# Authors: Sahil Mehul Bavishi (s2677266) and Matteo Spadaccia (s2748897)
+# Subject: Computer Vision Coursework. IOU calculation
+# Date: 21.03.2025
+
 import os
 import random
 import torch

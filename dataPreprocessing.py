@@ -1,12 +1,12 @@
-# Authors: Sahil Mehul Bavishi (s2677266) and Matteo Spadaccia (its a me Mario)
+# Authors: Sahil Mehul Bavishi (s2677266) and Matteo Spadaccia (s2748897)
 # Subject: Computer Vision Coursework. Pre-Processing 
 # Date: 21.03.2025
 
 
 # Global Constants
-genVISUALS = False  # set to False in order to avoid time-consuming visualizations' genaration (images are instead displayed as pre-saved in 'Output/Visuals' folder)
+genVISUALS = True   # set to False in order to avoid time-consuming visualizations' genaration (images are instead displayed as pre-saved in 'Output/Visuals' folder)
 dpi = 500           # dpi for .pdf-saved images visualization (with genVISUALS = False)
-rePREPROC = False   # if True, the input images' resizing and augmentation are run, otherwise the saved outcomes are used
+rePREPROC = True    # if True, the input images' resizing and augmentation are run, otherwise the saved outcomes are used
 random_seed = 42
 doAugmentation = True
 
