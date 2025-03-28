@@ -1,4 +1,4 @@
-# Authors: Sahil Mehul Bavishi (s2677266) and Matteo Spadaccia (its a me Mario)
+# Authors: Sahil Mehul Bavishi (s2677266) and Matteo Spadaccia (s2748897)
 # Subject: Computer Vision Coursework. Clip
 # Date: 21.03.2025
 

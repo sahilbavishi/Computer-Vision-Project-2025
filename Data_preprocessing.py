@@ -1,21 +1,18 @@
-# Authors: Sahil Mehul Bavishi (s2677266) and Matteo Spadaccia (its a me Mario)
+# Authors: Sahil Mehul Bavishi (s2677266) and Matteo Spadaccia (s2748897)
 # Subject: Computer Vision Coursework. Pre-Processing 
 # Date: 21.03.2025
 
 
-# Global Constants
-genVISUALS = False  # set to False in order to avoid time-consuming visualizations' genaration (images are instead displayed as pre-saved in 'Output/Visuals' folder)
+# Code-behaviour varaibles
 dpi = 500           # dpi for .pdf-saved images visualization (with genVISUALS = False)
-rePREPROC = False   # if True, the input images' resizing and augmentation are run, otherwise the saved outcomes are used
-random_seed = 42
-doAugmentation = True
+doResize = True    # if True, the input images' resizing is run, otherwise the saved outcomes are used
+doAugment = True    # if True, the resized images' augmentaion is run, otherwise the saved outcomes are used
+genVISUALS = True   # set to False in order to avoid time-consuming visualizations' genaration (images are instead displayed as pre-saved in 'Output/Visuals' folder)
 
 # Importing useful libraries
-# %pip install pdf2image
-#conda install poppler-utils
 import os
 from pathlib import Path
-from pdf2image import convert_from_path # (also install !apt-get install poppler-utils)
+from pdf2image import convert_from_path # (also install poppler-utils)
 from IPython.display import display
 import numpy as np
 from PIL import Image
@@ -60,7 +57,7 @@ Furthermore...(data augmentation)
 """
 
 # Gauging image sizes
-if genVISUALS or rePREPROC:
+if genVISUALS or doResize:
   widths = []
   heights = []
   for img_file in input_trainval:
@@ -70,7 +67,7 @@ if genVISUALS or rePREPROC:
           heights.append(height)
 
 # Visualizing histogram distribution of dimensions
-if genVISUALS or rePREPROC:
+if genVISUALS or doResize:
   plt.figure(figsize=(12, 5))
   plt.subplot(1, 2, 1)
   plt.hist(widths, bins=20, color='lightblue', edgecolor='black')
@@ -90,7 +87,7 @@ else:
     display(image)
 
 # Visualizing boxplot distribution of dimensions
-if genVISUALS or rePREPROC:
+if genVISUALS or doResize:
   plt.figure(figsize=(10, 6))
   data = {"Width": widths, "Height": heights}
   sns.boxplot(data=data, palette=['lightblue', 'skyblue'])
@@ -105,7 +102,7 @@ else:
 
 # Printing stats
 print(f"Input set size: {len(input_trainval)}\n")
-if rePREPROC:
+if doResize:
   min_width, min_height = np.min(widths), np.min(heights)
   median_width, median_height = np.median(widths), np.median(heights)
   mean_width, mean_height = np.mean(widths), np.mean(heights)
@@ -128,7 +125,7 @@ else:
 """#### a) Resizing"""
 
 # Resizing images (to Q3 width, Q3 height)
-if rePREPROC:
+if doResize:
   imgResize = (int(q3_width), int(q3_height))
   widthsNP = np.array(widths)
   heightsNP = np.array(heights)
@@ -209,7 +206,7 @@ augmentation = A.Compose([
     A.MultiplicativeNoise(multiplier=(0.9, 1.1), p=0.3)
 ], additional_targets={'mask': 'mask'})  # Ensures correct mask handling
 
-if doAugmentation:
+if doAugment:
     i = 0
     print('Augmenting the data')
     for img_file in os.listdir(output_folder_resized_color):
@@ -241,7 +238,7 @@ if doAugmentation:
         aug_mask = np.round(aug_mask).astype(np.uint8)
 
         # Clean mask to ensure only {0, 38, 75}
-        aug_mask = clean_mask(aug_mask)
+        #aug_mask = clean_mask(aug_mask)
 
         # Save augmented image
         output_img_path = os.path.join(output_folder_augmented_color, f'aug_{i}_{img_file}')

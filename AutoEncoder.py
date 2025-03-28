@@ -1,4 +1,4 @@
-# Authors: Sahil Mehul Bavishi (s2677266) and Matteo Spadaccia (its a me Mario)
+# Authors: Sahil Mehul Bavishi (s2677266) and Matteo Spadaccia (s2748897)
 # Subject: Computer Vision Coursework. Auto-Encoder 
 # Date: 21.03.2025
 
@@ -8,6 +8,7 @@ genVISUALS = False  # set to False in order to avoid time-consuming visualizatio
 dpi = 500           # dpi for .pdf-saved images visualization (with genVISUALS = False)
 rePREPROC = False   # if True, the input images' resizing and augmentation are run, otherwise the saved outcomes are used
 random_seed = 42
+trainEncoder = True
 
 
 # IMPORTS
@@ -156,74 +157,73 @@ class Autoencoder(nn.Module):
     
   # Below is the code to train the autoencoder  
     
-'''
-# # Custom Dataset for loading images
-class ImageDataset(Dataset):
-    def __init__(self, image_files, transform=None, max_images=100):
-        self.image_files = image_files  # Limit to first 100 images
-        self.transform = transform
+if trainEncoder == True:
+    # # Custom Dataset for loading images
+    class ImageDataset(Dataset):
+        def __init__(self, image_files, transform=None, max_images=100):
+            self.image_files = image_files  # Limit to first 100 images
+            self.transform = transform
 
-    def __len__(self):
-        return len(self.image_files)
+        def __len__(self):
+            return len(self.image_files)
 
-    def __getitem__(self, idx):
-        img_path = self.image_files[idx]
-        image = Image.open(img_path).convert('RGB')
-        if self.transform:
-            image = self.transform(image)
-        return image
+        def __getitem__(self, idx):
+            img_path = self.image_files[idx]
+            image = Image.open(img_path).convert('RGB')
+            if self.transform:
+                image = self.transform(image)
+            return image
 
-# Transformations
-transform = transforms.Compose([
-    transforms.Resize((256, 256)),
-    transforms.ToTensor(),
-#     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])  # Normalize to [-1,1]
-])
+    # Transformations
+    transform = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+    #     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])  # Normalize to [-1,1]
+    ])
 
 
-# Load dataset with first 100 images
-dataset = ImageDataset(image_files=train_images, transform=transform, max_images=100)
-dataloader = DataLoader(dataset, batch_size=batchSize, shuffle=True)
+    # Load dataset with first 100 images
+    dataset = ImageDataset(image_files=train_images, transform=transform, max_images=100)
+    dataloader = DataLoader(dataset, batch_size=batchSize, shuffle=True)
 
-# Device configuration
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(device)
+    # Device configuration
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
 
-# Initialize model, loss, and optimizer
-autoencoder = Autoencoder().to(device)
-criterion = nn.MSELoss()
-optimizer = optim.Adam(autoencoder.parameters(), lr=1e-3) 
+    # Initialize model, loss, and optimizer
+    autoencoder = Autoencoder().to(device)
+    criterion = nn.MSELoss()
+    optimizer = optim.Adam(autoencoder.parameters(), lr=1e-3) 
 
-def weights_init(m):
-    if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-        nn.init.xavier_uniform_(m.weight)  # Xavier initialization
-        if m.bias is not None:
-            nn.init.zeros_(m.bias)
+    def weights_init(m):
+        if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+            nn.init.xavier_uniform_(m.weight)  # Xavier initialization
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
 
-autoencoder.apply(weights_init)
+    autoencoder.apply(weights_init)
 
-# Training the Autoencoder
-num_epochs = 30
-for epoch in range(num_epochs):
-    print(f"Epoch [{epoch+1}/{num_epochs}] Running:")
-    torch.cuda.empty_cache()
-    for batch in dataloader:
-        batch = batch.to(device)
-        optimizer.zero_grad()
+    # Training the Autoencoder
+    num_epochs = 30
+    for epoch in range(num_epochs):
+        print(f"Epoch [{epoch+1}/{num_epochs}] Running:")
+        torch.cuda.empty_cache()
+        for batch in dataloader:
+            batch = batch.to(device)
+            optimizer.zero_grad()
 
-        with autocast():  # Use autocast only here
-            outputs = autoencoder(batch)
-            loss = criterion(outputs, batch)
+            with autocast():  # Use autocast only here
+                outputs = autoencoder(batch)
+                loss = criterion(outputs, batch)
 
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
-    print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
 
-    # Save the model after each epoch
-    torch.save(autoencoder.state_dict(), f'Data/Output/Models/updated_working_autoencoder_epoch_{epoch+1}.pth')
-'''
+        # Save the model after each epoch
+        torch.save(autoencoder.state_dict(), f'Data/Output/Models/updated_working_autoencoder_epoch_{epoch+1}.pth')
 
 
 ###### NOW THAT THE ENCODER IS PRE-TRAINED, WE CAN CREATE A GOOD SEGMENTER #######
