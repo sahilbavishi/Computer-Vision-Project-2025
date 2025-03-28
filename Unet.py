@@ -67,7 +67,7 @@ print("Q3 width and height values (both 500 pixels) were chosen for resizing.")
 
 # Resizing images (to Q3 width, Q3 height)
 print("Using previously resized images and labels (500x500).")
-imgResize = (500, 500)
+imgResize = (128, 128)
 
 """#### b) Augmenting dataset"""
 print("Using previously augmented data.")
@@ -77,7 +77,7 @@ print("Using previously augmented data.")
 
 # Preparing train, valid and test sets
 validSize = 0.2
-batchSize = 4
+batchSize = 16
 imgChannels = 3 ## this was 3
 inputSize = (imgResize[0], imgResize[1], imgChannels)
 
@@ -85,7 +85,7 @@ import os
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 # Define preprocessed size
-preprocessedSize = (256, 256)  # Desired size for input images and masks
+preprocessedSize = imgResize  # Desired size for input images and masks
 inputSize = (256,256,3)
 
 trainval_images = [os.path.join(output_folder_augmented_color, f) for f in os.listdir(output_folder_augmented_color) if f.endswith('.jpg')]
@@ -103,14 +103,14 @@ print(f" Test set size: {len(test_images)}")
 print(f"\nInput dimension: {preprocessedSize + (imgChannels,)}")  # Adjusted for the preprocessed size
 print(f"Batches' size: {batchSize}")
 
-classesNum = 4 # number of output classes
+classesNum = 3 # number of output classes
 epochsNum = 100 # number of training epochs
 batchSize = 16
 
 
 # Define the UNet architecture
 class UNet(nn.Module):
-    def __init__(self, num_classes=4):
+    def __init__(self, num_classes=3):
         super(UNet, self).__init__()
 
         # Encoder
@@ -136,16 +136,20 @@ class UNet(nn.Module):
         self.dec7 = self.conv_block(128, 64)
 
         # Final output layer
-        self.final_conv = nn.Conv2d(64, num_classes, kernel_size=1)
-
+        self.final_conv = nn.Conv2d(64, 3, kernel_size=1)
+        
     def conv_block(self, in_channels, out_channels):
         return nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True)
+        nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+        nn.BatchNorm2d(out_channels),
+        nn.ReLU(inplace=True),
+        nn.Dropout(0.2),
+        nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+        nn.BatchNorm2d(out_channels),
+        nn.ReLU(inplace=True),
+        nn.Dropout(0.2)
         )
-
+    
     def forward(self, x):
         # Encoder
         c1 = self.enc1(x)
@@ -180,9 +184,19 @@ class UNet(nn.Module):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Initialize model, optimizer, and loss function
-model = UNet(num_classes=4).to(device)
+model = UNet(num_classes=3).to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
-criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss()
+
+def dice_loss(pred, target, smooth=1e-6):
+    pred = torch.softmax(pred, dim=1)
+    target = torch.nn.functional.one_hot(target, num_classes=pred.shape[1]).permute(0, 3, 1, 2)
+    intersection = (pred * target).sum(dim=(2, 3))
+    union = pred.sum(dim=(2, 3)) + target.sum(dim=(2, 3))
+    dice = (2.0 * intersection + smooth) / (union + smooth)
+    return 1 - dice.mean()
+
+criterion = lambda outputs, masks: nn.CrossEntropyLoss()(outputs, masks) + dice_loss(outputs, masks)
 
 
 # Evaluation
@@ -221,7 +235,7 @@ class UNetDataset(Dataset):
         if self.transform:
             image = self.transform(image)
             
-        label = label.resize((256, 256), Image.NEAREST)
+        label = label.resize(imgResize, Image.NEAREST)
 
         # Convert label to tensor
         label = torch.tensor(np.array(label), dtype=torch.long)  # Shape: (H, W)
@@ -229,7 +243,7 @@ class UNetDataset(Dataset):
         # # Map pixel values to class indices
         label = torch.where(label == 38, 1, label)
         label = torch.where(label == 75, 2, label)
-        label = torch.where(label == 255, 3, label)
+        label = torch.where(label == 255, 0, label)
         label = torch.where(label == 0, 0, label)  # Ensure 0 stays as class 0
 
         # mapping = {38: 1, 75: 2, 255: 0, 0: 0}
@@ -241,7 +255,7 @@ class UNetDataset(Dataset):
 
 # Define transformations
 image_transform = transforms.Compose([
-    transforms.Resize((256, 256)),
+    transforms.Resize(imgResize),
     transforms.ToTensor()
 ])
 
@@ -258,7 +272,7 @@ test_dataset = UNetDataset(test_images, test_masks, transform=image_transform, t
 test_loader = DataLoader(test_dataset, batch_size=batchSize, shuffle=False)
 
 # Define the training function
-def train_unet(model, train_loader, val_loader, epochs=2, model_save_path="/home/s2677266/CVis/Data/Output/Models/", device="cuda" if torch.cuda.is_available() else "cpu"):
+def train_unet(model, train_loader, val_loader, epochs, model_save_path="/home/s2677266/CVis/Data/Output/Models/", device="cuda" if torch.cuda.is_available() else "cpu"):
     model.to(device)
     criterion = nn.CrossEntropyLoss()  # For multi-class segmentation
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -291,7 +305,7 @@ def train_unet(model, train_loader, val_loader, epochs=2, model_save_path="/home
         print(f"Epoch {epoch+1}/{epochs}, Validation Loss: {val_loss / len(val_loader):.4f}")
 
         # Save model after each epoch
-        epoch_model_path = f"{model_save_path}unet_model_epoch_{epoch+1}.pth"
+        epoch_model_path = f"{model_save_path}final_unet_model_epoch_{epoch+1}.pth"
         torch.save(model.state_dict(), epoch_model_path)
         print(f"Model saved at {epoch_model_path}")
 

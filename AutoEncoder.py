@@ -34,7 +34,10 @@ from tqdm import tqdm
 import pickle as pkl
 from torch.cuda.amp import autocast, GradScaler
 
-
+if torch.cuda.is_available():
+    print("using GPU")
+else:
+    print("using CPU")
 
 # Loading input data
 input_folder_trainval = 'Data/Input/TrainVal'
@@ -105,7 +108,7 @@ print(f" Test set size: {len(test_images)}")
 print(f"\nInput dimension: {preprocessedSize + (imgChannels,)}")  # Adjusted for the preprocessed size
 print(f"Batches' size: {batchSize}")
 
-classesNum = 4 # number of output classes
+classesNum = 3 # number of output classes
 epochsNum = 100 # number of training epochs
 batchSize = 16
 
@@ -248,8 +251,10 @@ class SegmentationDecoder(nn.Module):
         super(SegmentationDecoder, self).__init__()
         
         # Partially freeze encoder (freeze first few layers, fine-tune deeper ones)
-        for param in list(encoder.parameters())[:4]:  # Adjust layers to freeze
-            param.requires_grad = False
+        # for param in list(encoder.parameters())[:4]:  # Adjust layers to freeze
+        #     param.requires_grad = False
+        for param in encoder.parameters():
+            param.requires_grad = True
         
         self.encoder = encoder
 
@@ -352,9 +357,11 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(segmentation_optimizer, T
 scaler = torch.cuda.amp.GradScaler()
 
 num_epochs = 100
-for epoch in range(num_epochs):
+for epoch in tqdm(range(num_epochs), desc="Training Progress"):
     print(f"Epoch [{epoch+1}/{num_epochs}] Running:")
-    for images, labels in segmentation_dataloader:
+    
+    # Wrap the dataloader with tqdm for batch progress
+    for images, labels in tqdm(segmentation_dataloader, desc=f"Epoch {epoch+1}", leave=False):
         images, labels = images.to(device), labels.to(device)
 
         segmentation_optimizer.zero_grad()
@@ -375,9 +382,8 @@ for epoch in range(num_epochs):
         
     scheduler.step()
 
-
       
     print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
-    torch.save(segmentation_model.state_dict(), f'Data/Output/Models/improved_segmentation_model_2_epoch_{epoch+1}.pth')
+    torch.save(segmentation_model.state_dict(), f'Data/Output/Models/final_segmentation_model1_epoch_{epoch+1}.pth')
 
 

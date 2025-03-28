@@ -8,7 +8,7 @@ genVISUALS = False  # set to False in order to avoid time-consuming visualizatio
 dpi = 500           # dpi for .pdf-saved images visualization (with genVISUALS = False)
 rePREPROC = False   # if True, the input images' resizing and augmentation are run, otherwise the saved outcomes are used
 random_seed = 42
-doAugmentation = False
+doAugmentation = True
 
 # Importing useful libraries
 # %pip install pdf2image
