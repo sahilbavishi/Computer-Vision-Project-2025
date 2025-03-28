@@ -3,11 +3,13 @@
 # Date: 21.03.2025
 
 
-# Code-behaviour varaibles
-dpi = 500           # dpi for .pdf-saved images visualization (with genVISUALS = False)
-doResize = True    # if True, the input images' resizing is run, otherwise the saved outcomes are used
+""""0. Preliminary code"""
+
+# Setting code-behaviour varaibles
+doResize = True     # if True, the input images' resizing is run, otherwise the saved outcomes are used
 doAugment = True    # if True, the resized images' augmentaion is run, otherwise the saved outcomes are used
 genVISUALS = True   # set to False in order to avoid time-consuming visualizations' genaration (images are instead displayed as pre-saved in 'Output/Visuals' folder)
+dpi = 500           # dpi for .pdf-saved images visualization (with genVISUALS = False)
 
 # Importing useful libraries
 import os
@@ -18,18 +20,8 @@ import numpy as np
 from PIL import Image
 import seaborn as sns
 import cv2
-import tensorflow as tf
 import albumentations as A
-from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-import torch.nn.functional as F
-# These are libraries for Model Creation:
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms
-from torch.optim.lr_scheduler import StepLR
 
 # Loading input data
 input_folder_trainval = 'Data/Input/TrainVal'
@@ -49,12 +41,8 @@ output_folder_resized_label = os.path.join(output_folder_resized, 'label')
 output_folder_augmented_color = os.path.join(output_folder_augmented, 'color')
 output_folder_augmented_label = os.path.join(output_folder_augmented, 'label')
 
-"""### 1. Dataset preprocessing and augmentation
 
-The images are resized to the dimensions (H<sub>min</sub>, W<sub>min</sub>), thus to take the Q3 height and width size over all the images in the dataset; the instances will be processed in this format, then the output resized back to the original dimensions...
-
-Furthermore...(data augmentation)
-"""
+"""1. Dataset exploration"""
 
 # Gauging image sizes
 if genVISUALS or doResize:
@@ -122,7 +110,8 @@ if doResize:
 else:
   print("Q3 width and height values (both 500 pixels) were chosen for resizing.")
 
-"""#### a) Resizing"""
+
+"""2. Images' resizing"""
 
 # Resizing images (to Q3 width, Q3 height)
 if doResize:
@@ -157,103 +146,81 @@ else:
   print("Using previously resized images and labels (500x500).")
   imgResize = (500, 500)
 
-"""#### b) Augmenting dataset"""
 
-import albumentations as A
-import cv2
-import numpy as np
-import os
-from PIL import Image
+"""3. Augmenting dataset"""
 
-def clean_mask(mask):
-    """
-    Ensures the mask contains only the valid pixel values {0, 38, 75} 
-    by replacing 255 (outline) and any unexpected values with 0.
-    
-    Args:
-        mask (numpy.ndarray): The mask array.
-
-    Returns:
-        numpy.ndarray: The cleaned mask with only valid pixel values.
-    """
+def clean_mask(mask): #(uncomment in augmentation process if desired)
+    '''Ensures the mask contains only values in {0, 38, 75}, replacing 255 (outline) and any unexpected values with 0.'''
     valid_values = {0, 38, 75}
-
-    # Replace outline (255) with background (0)
     mask[mask == 255] = 0
-
-    # Ensure mask contains only valid values
     mask = np.where(np.isin(mask, list(valid_values)), mask, 0)
-
     return mask.astype(np.uint8)
 
-# Define augmentations
+# Defining augmentations
 augmentation = A.Compose([
-    # --- Geometric Transformations (Applied to Image & Mask) ---
+   
+    # Geometric transformations (applied to both images and masks)
     A.HorizontalFlip(p=0.5),
     A.VerticalFlip(p=0.5),
     A.RandomRotate90(p=0.5),
     A.Affine(scale=(0.9, 1.1), translate_percent=(0.1, 0.1), rotate=(-15, 15), shear=(-10, 10), p=0.5),
     A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.5),
-    A.GridDistortion(num_steps=5, distort_limit=0.3, interpolation=0, p=0.5),  # Nearest neighbor interpolation
-    A.OpticalDistortion(distort_limit=0.3, shift_limit=0.3, interpolation=0, p=0.5),  # Nearest neighbor
+    A.GridDistortion(num_steps=5, distort_limit=0.3, interpolation=0, p=0.5), # NN-interpolation
+    A.OpticalDistortion(distort_limit=0.3, shift_limit=0.3, interpolation=0, p=0.5), # Nearest Neighbor
 
-    # --- Intensity Augmentations (Applied Only to Image) ---
+    # Intensity augmentations (applied to images only)
     A.GaussianBlur(blur_limit=(3, 7), p=0.3),
     A.MotionBlur(blur_limit=5, p=0.3),
     A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.3),
     A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.3),
     A.GaussNoise(var_limit=(10.0, 50.0), p=0.3),
     A.MultiplicativeNoise(multiplier=(0.9, 1.1), p=0.3)
-], additional_targets={'mask': 'mask'})  # Ensures correct mask handling
+], additional_targets={'mask': 'mask'})
 
 if doAugment:
     i = 0
     print('Augmenting the data')
     for img_file in os.listdir(output_folder_resized_color):
         img_path = os.path.join(output_folder_resized_color, img_file)
-        mask_filename = os.path.splitext(img_file)[0] + ".png"  # Replace .jpeg with .png
+        mask_filename = os.path.splitext(img_file)[0] + ".png"
         mask_path = os.path.join(output_folder_resized_label, mask_filename)
 
-        # Load image and mask
+        # Loading image and mask(in grayscale)
         img = cv2.imread(img_path)
-        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)  # Load mask in grayscale
+        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
 
         if img is None or mask is None:
             print(f"Skipping {img_file} as corresponding image or mask is missing.")
             continue
 
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        # Save the original image and mask
+        # Saving original image and mask
         orig_img_path = os.path.join(output_folder_augmented_color, f'orig_{img_file}')
         orig_mask_path = os.path.join(output_folder_augmented_label, f'orig_{mask_filename}')
-        Image.fromarray(img).save(orig_img_path, "JPEG")  # Save as JPEG
-        Image.fromarray(mask).save(orig_mask_path, "PNG")  # Save as PNG
+        Image.fromarray(img).save(orig_img_path, "JPEG")
+        Image.fromarray(mask).save(orig_mask_path, "PNG")
 
-        # Apply augmentation
+        # Applying augmentation
         augmented = augmentation(image=img, mask=mask)
         aug_img, aug_mask = augmented['image'], augmented['mask']
+        aug_mask = np.round(aug_mask).astype(np.uint8) # Ensuring mask remains categorical
 
-        # Ensure mask remains categorical by reapplying np.uint8
-        aug_mask = np.round(aug_mask).astype(np.uint8)
-
-        # Clean mask to ensure only {0, 38, 75}
+        # Cleaning mask (uncomment if desired)
         #aug_mask = clean_mask(aug_mask)
 
-        # Save augmented image
+        # Saving augmented image and mask
         output_img_path = os.path.join(output_folder_augmented_color, f'aug_{i}_{img_file}')
-        Image.fromarray(aug_img).save(output_img_path, "JPEG")  # Save as JPEG
-
-        # Save augmented mask
-        output_mask_filename = f'aug_{i}_{mask_filename}'  # Ensure naming consistency
+        Image.fromarray(aug_img).save(output_img_path, "JPEG")
+        output_mask_filename = f'aug_{i}_{mask_filename}'
         output_mask_path = os.path.join(output_folder_augmented_label, output_mask_filename)
-        Image.fromarray(aug_mask).save(output_mask_path, "PNG")  # Save as PNG
+        Image.fromarray(aug_mask).save(output_mask_path, "PNG")
 
         i += 1
 
     print(f"{i} images and masks augmented, including originals, output saved in {output_folder_augmented_color} & {output_folder_augmented_label}")
 
-    # Number of images needed to balance cats and dogs
+    # Computing the number of images needed to balance cats and dogs
     target_cat_count = 2492
     existing_cat_count = 1188
     additional_cats_needed = target_cat_count - existing_cat_count
@@ -262,12 +229,12 @@ if doAugment:
         cat_breeds = ["abyssinian", "bengal", "birman", "bombay", "british_shorthair", 
                       "egyptian_mau", "maine_coon", "persian", "ragdoll", "russian_blue", 
                       "siamese", "sphynx"]
-        filename_lower = filename.lower()  # Convert to lowercase for case-insensitive search
+        filename_lower = filename.lower()
         return any(breed in filename_lower for breed in cat_breeds)
 
-    # Calculate how many augmentations per cat image
+    # Calculating how many augmentations per cat image
     cat_images = [img for img in os.listdir(output_folder_augmented_color) if is_cat(img.lower())]
-    augmentations_per_image = 1  # Distribute augmentations
+    augmentations_per_image = 1
 
     i = 0
     for img_file in cat_images:
@@ -284,30 +251,28 @@ if doAugment:
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        # Apply augmentation multiple times to balance dataset
+        # Applying augmentation multiple times to balance dataset
         for j in range(augmentations_per_image):
             augmented = augmentation(image=img, mask=mask)
             aug_img, aug_mask = augmented['image'], augmented['mask']
 
-            # Ensure mask remains categorical
+            # Ensuring mask remains categorical
             aug_mask = np.round(aug_mask).astype(np.uint8)
             unique_values = np.unique(mask)
             for value in np.unique(aug_mask):
                 if value not in unique_values:
                     aug_mask[aug_mask == value] = 0  
 
-            # Save augmented image
+            # Saving augmented image and mask
             output_img_path = os.path.join(output_folder_augmented_color, f'aug_{i}_{j}_{img_file}')
             Image.fromarray(aug_img).save(output_img_path, "JPEG")
-
-            # Save augmented mask
             output_mask_filename = f'aug_{i}_{j}_{mask_filename}'
             output_mask_path = os.path.join(output_folder_augmented_label, output_mask_filename)
             Image.fromarray(aug_mask).save(output_mask_path, "PNG")
 
             i += 1
             if i >= additional_cats_needed:
-                break  # Stop when we reach the target count
+                break
 
 else:
     print("Using previously augmented data.")
