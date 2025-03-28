@@ -103,14 +103,14 @@ print(f" Test set size: {len(test_images)}")
 print(f"\nInput dimension: {preprocessedSize + (imgChannels,)}")  # Adjusted for the preprocessed size
 print(f"Batches' size: {batchSize}")
 
-classesNum = 3 # number of output classes
+classesNum = 4 # number of output classes
 epochsNum = 100 # number of training epochs
-batchSize = 16
+batchSize = 32
 
 
 # Define the UNet architecture
 class UNet(nn.Module):
-    def __init__(self, num_classes=3):
+    def __init__(self, num_classes=classesNum):
         super(UNet, self).__init__()
 
         # Encoder
@@ -184,7 +184,7 @@ class UNet(nn.Module):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Initialize model, optimizer, and loss function
-model = UNet(num_classes=3).to(device)
+model = UNet(classesNum).to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 # criterion = nn.CrossEntropyLoss()
 
@@ -243,7 +243,7 @@ class UNetDataset(Dataset):
         # # Map pixel values to class indices
         label = torch.where(label == 38, 1, label)
         label = torch.where(label == 75, 2, label)
-        label = torch.where(label == 255, 0, label)
+        label = torch.where(label == 255, 3, label)
         label = torch.where(label == 0, 0, label)  # Ensure 0 stays as class 0
 
         # mapping = {38: 1, 75: 2, 255: 0, 0: 0}
@@ -305,7 +305,7 @@ def train_unet(model, train_loader, val_loader, epochs, model_save_path="/home/s
         print(f"Epoch {epoch+1}/{epochs}, Validation Loss: {val_loss / len(val_loader):.4f}")
 
         # Save model after each epoch
-        epoch_model_path = f"{model_save_path}final_unet_model_epoch_{epoch+1}.pth"
+        epoch_model_path = f"{model_save_path}Better_Final_unet_model_epoch_{epoch+1}.pth"
         torch.save(model.state_dict(), epoch_model_path)
         print(f"Model saved at {epoch_model_path}")
 

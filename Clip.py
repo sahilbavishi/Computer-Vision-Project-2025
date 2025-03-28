@@ -113,7 +113,7 @@ print(f" Test set size: {len(test_images)}")
 print(f"\nInput dimension: {preprocessedSize + (imgChannels,)}")  # Adjusted for the preprocessed size
 print(f"Batches' size: {batchSize}")
 
-classesNum = 3 # number of output classes
+classesNum = 4 # number of output classes
 epochsNum = 100 # number of training epochs
 batchSize = 16
 
@@ -129,28 +129,28 @@ tokenizer = open_clip.get_tokenizer("ViT-B-32")
 
 # Directory to save CLIP features
 clip_features_dir = "Data/Output/Models/clipTrainFeatures"
-os.makedirs(clip_features_dir, exist_ok=True)
+# os.makedirs(clip_features_dir, exist_ok=True)
 
-# Extract and save CLIP features
-def extract_clip_features(image_path):
-    image = Image.open(image_path).convert("RGB")
-    image_tensor = preprocess_val(image).unsqueeze(0).to(device)  # Use open_clip's preprocessing
-    with torch.no_grad():
-        features = model.encode_image(image_tensor)  # Extract image features
-    features = features / features.norm(p=2, dim=-1, keepdim=True)  # Normalize
-    return features.cpu()
+# # Extract and save CLIP features
+# def extract_clip_features(image_path):
+#     image = Image.open(image_path).convert("RGB")
+#     image_tensor = preprocess_val(image).unsqueeze(0).to(device)  # Use open_clip's preprocessing
+#     with torch.no_grad():
+#         features = model.encode_image(image_tensor)  # Extract image features
+#     features = features / features.norm(p=2, dim=-1, keepdim=True)  # Normalize
+#     return features.cpu()
 
-clip_features_trainval = {}
+# clip_features_trainval = {}
+# print("Extracting Clip Features")
+# for image_name in trainval_images:
+#     image_path = image_name
+#     clip_features = extract_clip_features(image_path)
 
-for image_name in trainval_images:
-    image_path = image_name
-    clip_features = extract_clip_features(image_path)
+#     # Save each feature tensor separately
+#     feature_path = os.path.join(clip_features_dir, f"{image_name.split('/')[-1].split('.')[0]}.pt")
+#     torch.save(clip_features, feature_path)
 
-    # Save each feature tensor separately
-    feature_path = os.path.join(clip_features_dir, f"{image_name.split('/')[-1].split('.')[0]}.pt")
-    torch.save(clip_features, feature_path)
-
-    clip_features_trainval[image_name] = feature_path  # Store path reference
+#     clip_features_trainval[image_name] = feature_path  # Store path reference
 
 clip_features_trainval = {
     image_name: torch.load(os.path.join(clip_features_dir, f"{image_name.split('/')[-1].split('.')[0]}.pt"))
@@ -199,7 +199,7 @@ class SegmentationDataset(Dataset):
         label = torch.where(label == 75, 2, label)
         label = torch.where(label == 255, 3, label)
         label = torch.where(label == 0, 0, label)
-
+        # label = torch.where(label >= num_classes, 0, label)
         return image, clip_feature, label  # Return both image & CLIP feature
 
 
@@ -229,7 +229,7 @@ segmentation_dataloader = DataLoader(segmentation_dataset, batch_size=batch_size
 
 # Segmentation Model
 class SegmentationDecoder(nn.Module):
-    def __init__(self, clip_feature_dim=512, num_classes=3):
+    def __init__(self, clip_feature_dim=512, num_classes=classesNum):
         super(SegmentationDecoder, self).__init__()
 
         # Project CLIP features
@@ -269,6 +269,7 @@ class SegmentationDecoder(nn.Module):
 segmentation_model = SegmentationDecoder().to(device)
 segmentation_criterion = nn.CrossEntropyLoss()
 segmentation_optimizer = optim.Adam(segmentation_model.parameters(), lr=1e-3)
+
 scheduler = torch.optim.lr_scheduler.StepLR(segmentation_optimizer, step_size=5, gamma=0.5)
 
 # Mixed Precision Training
@@ -283,6 +284,7 @@ for epoch in tqdm(range(epochsNum), desc="Training Progress"):
     print(f"Epoch [{epoch+1}/{epochsNum}] Running:")
     
     for images, clip_features, labels in segmentation_dataloader:  # Unpack correctly
+        # print(torch.unique(labels))
         images, clip_features, labels = images.to(device), clip_features.to(device), labels.to(device)
 
         segmentation_optimizer.zero_grad()
@@ -305,7 +307,7 @@ for epoch in tqdm(range(epochsNum), desc="Training Progress"):
     avg_loss = running_loss / len(segmentation_dataloader)
     print(f"Epoch [{epoch+1}/{epochsNum}], Loss: {avg_loss:.4f}")
 
-    torch.save(segmentation_model.state_dict(), f'Data/Output/Models/final_clip_segmentation_model_epoch_{epoch+1}.pth')
+    torch.save(segmentation_model.state_dict(), f'Data/Output/Models/Better_Final_clip_segmentation_model_epoch_{epoch+1}.pth')
 
 
 

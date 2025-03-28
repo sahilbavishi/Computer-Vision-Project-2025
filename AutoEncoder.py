@@ -108,9 +108,9 @@ print(f" Test set size: {len(test_images)}")
 print(f"\nInput dimension: {preprocessedSize + (imgChannels,)}")  # Adjusted for the preprocessed size
 print(f"Batches' size: {batchSize}")
 
-classesNum = 3 # number of output classes
+classesNum = 4 # number of output classes
 epochsNum = 100 # number of training epochs
-batchSize = 16
+batchSize = 32
 
 
 
@@ -267,7 +267,7 @@ class SegmentationDecoder(nn.Module):
             nn.Conv2d(64, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 3, kernel_size=1)  # Output logits
+            nn.Conv2d(32, classesNum, kernel_size=1)  # Output logits
         )
 
     def forward(self, x):
@@ -303,13 +303,12 @@ class SegmentationDataset(Dataset):
         label = torch.tensor(np.array(label), dtype=torch.long)  # Shape: (H, W)
 
         # # Map pixel values to class indices
-        # label = torch.where(label == 38, 1, label)
-        # label = torch.where(label == 75, 2, label)
-        # label = torch.where(label == 255, 0, label)
-        # label = torch.where(label == 0, 0, label)  # Ensure 0 stays as class 0
+        label = torch.where(label == 38, 1, label)
+        label = torch.where(label == 75, 2, label)
+        label = torch.where(label == 255, 3, label)
+        label = torch.where(label == 0, 0, label)  # Ensure 0 stays as class 0
 
-        mapping = {38: 1, 75: 2, 255: 0, 0: 0}
-        label = torch.tensor(np.vectorize(mapping.get)(np.array(label)), dtype=torch.long)
+
 
         
 
@@ -384,6 +383,6 @@ for epoch in tqdm(range(num_epochs), desc="Training Progress"):
 
       
     print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
-    torch.save(segmentation_model.state_dict(), f'Data/Output/Models/final_segmentation_model1_epoch_{epoch+1}.pth')
+    torch.save(segmentation_model.state_dict(), f'Data/Output/Models/Better_Final_Segmentation_Model_epoch_{epoch+1}.pth')
 
 
