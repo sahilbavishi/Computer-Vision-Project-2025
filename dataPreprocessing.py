@@ -227,6 +227,12 @@ if doAugmentation:
 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
 
+        # Save the original image and mask
+        orig_img_path = os.path.join(output_folder_augmented_color, f'orig_{img_file}')
+        orig_mask_path = os.path.join(output_folder_augmented_label, f'orig_{mask_filename}')
+        Image.fromarray(img).save(orig_img_path, "JPEG")  # Save as JPEG
+        Image.fromarray(mask).save(orig_mask_path, "PNG")  # Save as PNG
+
         # Apply augmentation
         augmented = augmentation(image=img, mask=mask)
         aug_img, aug_mask = augmented['image'], augmented['mask']
@@ -238,18 +244,17 @@ if doAugmentation:
         aug_mask = clean_mask(aug_mask)
 
         # Save augmented image
-        output_img_path = os.path.join(output_folder_augmented_color, f'aug_{img_file}')
+        output_img_path = os.path.join(output_folder_augmented_color, f'aug_{i}_{img_file}')
         Image.fromarray(aug_img).save(output_img_path, "JPEG")  # Save as JPEG
 
         # Save augmented mask
-        output_mask_filename = f'aug_{mask_filename}'  # Ensure naming consistency
+        output_mask_filename = f'aug_{i}_{mask_filename}'  # Ensure naming consistency
         output_mask_path = os.path.join(output_folder_augmented_label, output_mask_filename)
         Image.fromarray(aug_mask).save(output_mask_path, "PNG")  # Save as PNG
 
         i += 1
 
-    print(f"{i} images and masks augmented, output saved in {output_folder_augmented_color} & {output_folder_augmented_label}")
-
+    print(f"{i} images and masks augmented, including originals, output saved in {output_folder_augmented_color} & {output_folder_augmented_label}")
 
     # Number of images needed to balance cats and dogs
     target_cat_count = 2492
@@ -258,16 +263,14 @@ if doAugmentation:
 
     def is_cat(filename):
         cat_breeds = ["abyssinian", "bengal", "birman", "bombay", "british_shorthair", 
-                    "egyptian_mau", "maine_coon", "persian", "ragdoll", "russian_blue", 
-                    "siamese", "sphynx"]
-        
+                      "egyptian_mau", "maine_coon", "persian", "ragdoll", "russian_blue", 
+                      "siamese", "sphynx"]
         filename_lower = filename.lower()  # Convert to lowercase for case-insensitive search
         return any(breed in filename_lower for breed in cat_breeds)
 
     # Calculate how many augmentations per cat image
     cat_images = [img for img in os.listdir(output_folder_augmented_color) if is_cat(img.lower())]
     augmentations_per_image = 1  # Distribute augmentations
-    # print(augmentations_per_image,additional_cats_needed,len(cat_images))
 
     i = 0
     for img_file in cat_images:
@@ -297,11 +300,11 @@ if doAugmentation:
                     aug_mask[aug_mask == value] = 0  
 
             # Save augmented image
-            output_img_path = os.path.join(output_folder_augmented_color, f'aug_{i}_{img_file}')
+            output_img_path = os.path.join(output_folder_augmented_color, f'aug_{i}_{j}_{img_file}')
             Image.fromarray(aug_img).save(output_img_path, "JPEG")
 
             # Save augmented mask
-            output_mask_filename = f'aug_{i}_{mask_filename}'
+            output_mask_filename = f'aug_{i}_{j}_{mask_filename}'
             output_mask_path = os.path.join(output_folder_augmented_label, output_mask_filename)
             Image.fromarray(aug_mask).save(output_mask_path, "PNG")
 
