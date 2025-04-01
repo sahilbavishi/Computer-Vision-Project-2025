@@ -1,0 +1,68 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Segmentation</title>
+</head>
+<body>
+    <h1>Upload an Image for Segmentation</h1>
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <label for="image">Select an image:</label>
+        <input type="file" name="image" required><br><br>
+
+        <label for="x">X Coordinate:</label>
+        <input type="number" name="x" placeholder="100" required><br>
+
+        <label for="y">Y Coordinate:</label>
+        <input type="number" name="y" placeholder="100" required><br><br>
+
+        <button type="submit">Segment</button>
+    </form>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Segmentation</title>
+    <script>
+        function sendClick(event) {
+            let img = document.getElementById("uploadedImage");
+            let rect = img.getBoundingClientRect();
+            let x = event.clientX - rect.left;
+            let y = event.clientY - rect.top;
+            let imagePath = img.getAttribute("src");
+
+            fetch('/process_click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ x: x, y: y, image_path: imagePath })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.segmented_image) {
+                    document.getElementById("segmentedResult").src = data.segmented_image;
+                } else {
+                    alert("Error: " + data.error);
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Upload an Image for Segmentation</h1>
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <label for="image">Select an image:</label>
+        <input type="file" name="image" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <h2>Click on the image to select coordinates</h2>
+    <img id="uploadedImage" src="{{ image_path }}" onclick="sendClick(event)" style="max-width: 100%; cursor: crosshair;">
+    
+    <h2>Segmented Image</h2>
+    <img id="segmentedResult" src="" style="max-width: 100%;">
+</body>
+</html>
+

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Coordinates</title>
+    <script>
+        function sendClick(event) {
+            let img = document.getElementById("uploadedImage");
+            let rect = img.getBoundingClientRect();
+            let x = (event.clientX - rect.left).toFixed(2);
+            let y = (event.clientY - rect.top).toFixed(2);
+            let imagePath = img.getAttribute("src");
+
+            fetch('/process_click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ x: x, y: y, image_path: imagePath })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.segmented_image) {
+                    document.getElementById("segmentedResult").src = data.segmented_image;
+                }
+                if (data.heatmap) {
+                    document.getElementById("heatmapResult").src = data.heatmap;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Click on the Image to Select Coordinates</h1>
+    <img id="uploadedImage" src="{{ image_path }}" onclick="sendClick(event)" style="max-width: 100%; cursor: crosshair;">
+
+    <h2>Heatmap</h2>
+    <img id="heatmapResult" src="" style="max-width: 100%;">
+    
+    <h2>Segmented Image</h2>
+    <img id="segmentedResult" src="" style="max-width: 100%;">
+</body>
+</html>
