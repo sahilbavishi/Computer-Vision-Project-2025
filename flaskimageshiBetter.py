@@ -173,6 +173,37 @@ def process_click():
     except Exception as e:
         return jsonify({'error': str(e)})
 
+@app.route('/process_scribble', methods=['POST'])
+def process_scribble():
+    try:
+        data = request.json
+        points = [(float(p['x']), float(p['y'])) for p in data['points']]
+        image_path = data['image_path']
+
+        print(f"Scribble points: {points}")
+
+        image = Image.open(image_path).convert("RGB")
+        image_size = image.size
+
+        # Generate heatmap from multiple points
+        heatmap = np.zeros(image_size[::-1])  # Create empty heatmap
+        for x, y in points:
+            heatmap += generate_gaussian_heatmap(image_size, (x, y), intensity=1.0, sigma=1)
+
+        heatmap = np.clip(heatmap, 0, 1)  # Normalize
+
+        heatmap_path = os.path.join(app.config['UPLOAD_FOLDER'], 'heatmap.png')
+        plt.imsave(heatmap_path, heatmap, cmap='gray')
+
+        segmented_output = segment_image(image, heatmap)
+        segmented_image_path = visualize_segmentation(segmented_output, image_size)
+
+        return jsonify({'heatmap': heatmap_path, 'segmented_image': segmented_image_path})
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
 @app.route('/static/<path:filename>')
 def static_files(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)

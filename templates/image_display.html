@@ -1,3 +1,4 @@
+<!-- DOTS_POINTS -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,3 +40,205 @@
     <img id="segmentedResult" src="" style="max-width: 100%;">
 </body>
 </html>
+
+
+<!-- INVISIBLE LINES -->
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Draw on Image</title>
+    <script>
+        let drawing = false;
+        let strokePoints = [];
+
+        function startDrawing(event) {
+            event.preventDefault();  // Prevents dragging the image
+            drawing = true;
+            strokePoints = [];
+            addPoint(event);
+        }
+
+        function draw(event) {
+            if (!drawing) return;
+            event.preventDefault();  // Prevents unwanted selection
+            addPoint(event);
+        }
+
+        function stopDrawing(event) {
+            event.preventDefault();
+            drawing = false;
+            if (strokePoints.length > 0) {
+                sendStroke();
+            }
+        }
+
+        function addPoint(event) {
+            let img = document.getElementById("uploadedImage");
+            let rect = img.getBoundingClientRect();
+            let x = (event.clientX - rect.left).toFixed(2);
+            let y = (event.clientY - rect.top).toFixed(2);
+            strokePoints.push({ x: x, y: y });
+        }
+
+        function sendStroke() {
+            let img = document.getElementById("uploadedImage");
+            let imagePath = img.getAttribute("src");
+
+            fetch('/process_scribble', {  // Updated endpoint
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ points: strokePoints, image_path: imagePath })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.segmented_image) {
+                    document.getElementById("segmentedResult").src = data.segmented_image;
+                }
+                if (data.heatmap) {
+                    document.getElementById("heatmapResult").src = data.heatmap;
+                }
+            });
+        }
+
+        // Prevent default drag behavior
+        window.onload = function() {
+            let img = document.getElementById("uploadedImage");
+            img.addEventListener("dragstart", function(event) {
+                event.preventDefault();
+            });
+        };
+    </script>
+</head>
+<body>
+    <h1>Draw on the Image</h1>
+    <p>Click and drag on the image to draw.</p>
+    <img id="uploadedImage" src="{{ image_path }}" 
+         onmousedown="startDrawing(event)" 
+         onmousemove="draw(event)" 
+         onmouseup="stopDrawing(event)" 
+         onmouseleave="stopDrawing(event)" 
+         style="max-width: 100%; cursor: crosshair; user-select: none;">
+
+    <h2>Heatmap</h2>
+    <img id="heatmapResult" src="" style="max-width: 100%;">
+    
+    <h2>Segmented Image</h2>
+    <img id="segmentedResult" src="" style="max-width: 100%;">
+</body>
+</html> -->
+
+<!-- VISIBLE LINES -->
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Draw on Image</title>
+    <style>
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+    </style>
+    <script>
+        let drawing = false;
+        let strokePoints = [];
+        let canvas, ctx;
+
+        window.onload = function() {
+            let img = document.getElementById("uploadedImage");
+            img.addEventListener("dragstart", function(event) {
+                event.preventDefault();
+            });
+
+            // Create a canvas overlay
+            canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.style.position = "absolute";
+            canvas.style.top = img.offsetTop + "px";
+            canvas.style.left = img.offsetLeft + "px";
+            document.body.appendChild(canvas);
+            ctx = canvas.getContext("2d");
+        };
+
+        function startDrawing(event) {
+            event.preventDefault();
+            drawing = true;
+            strokePoints = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            addPoint(event, true);
+        }
+
+        function draw(event) {
+            if (!drawing) return;
+            event.preventDefault();
+            addPoint(event, true);
+        }
+
+        function stopDrawing(event) {
+            event.preventDefault();
+            drawing = false;
+            if (strokePoints.length > 0) {
+                sendStroke();
+            }
+        }
+
+        function addPoint(event, drawLine) {
+            let img = document.getElementById("uploadedImage");
+            let rect = img.getBoundingClientRect();
+            let x = event.clientX - rect.left;
+            let y = event.clientY - rect.top;
+            strokePoints.push({ x: x.toFixed(2), y: y.toFixed(2) });
+
+            if (drawLine && strokePoints.length > 1) {
+                let lastPoint = strokePoints[strokePoints.length - 2];
+                ctx.beginPath();
+                ctx.moveTo(lastPoint.x, lastPoint.y);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = "red";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function sendStroke() {
+            let img = document.getElementById("uploadedImage");
+            let imagePath = img.getAttribute("src");
+
+            fetch('/process_scribble', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ points: strokePoints, image_path: imagePath })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.segmented_image) {
+                    document.getElementById("segmentedResult").src = data.segmented_image;
+                }
+                if (data.heatmap) {
+                    document.getElementById("heatmapResult").src = data.heatmap;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Draw on the Image</h1>
+    <p>Click and drag on the image to draw.</p>
+    <img id="uploadedImage" src="{{ image_path }}" 
+         onmousedown="startDrawing(event)" 
+         onmousemove="draw(event)" 
+         onmouseup="stopDrawing(event)" 
+         onmouseleave="stopDrawing(event)" 
+         style="max-width: 100%; cursor: crosshair; user-select: none; position: relative;">
+
+    <h2>Heatmap</h2>
+    <img id="heatmapResult" src="" style="max-width: 100%;">
+    
+    <h2>Segmented Image</h2>
+    <img id="segmentedResult" src="" style="max-width: 100%;">
+</body>
+</html> -->
