@@ -112,10 +112,10 @@ def segment_image(image, heatmap):
 def visualize_segmentation(segmented_output, original_size):
     # Define a color palette for 4 classes (0, 1, 2, 3)
     color_map = {
-        0: [0, 0, 0],        # Black
-        1: [0, 0, 255],      # Red
-        2: [0, 255, 0],      # Green
-        3: [255, 0, 0]       # Blue
+        0: [0, 0, 0],
+        1: [51, 102, 153],
+        2: [173, 216, 230],
+        3: [255, 255, 255]
     }
 
     # Create a color image based on the segmented output
@@ -202,6 +202,44 @@ def process_scribble():
 
     except Exception as e:
         return jsonify({'error': str(e)})
+
+@app.route('/process_bounding_box', methods=['POST'])
+def process_bounding_box():
+    try:
+        data = request.json
+        start_x, start_y = float(data['startX']), float(data['startY'])
+        end_x, end_y = float(data['endX']), float(data['endY'])
+        image_path = data['image_path']
+
+        print(f"Bounding Box: ({start_x}, {start_y}) to ({end_x}, {end_y})")
+
+        image = Image.open(image_path).convert("RGB")
+        image_size = image.size
+
+        # Ensure proper ordering of coordinates
+        x_min, x_max = min(start_x, end_x), max(start_x, end_x)
+        y_min, y_max = min(start_y, end_y), max(start_y, end_y)
+
+        # Generate all points inside the bounding box
+        points = [(x, y) for x in range(int(x_min), int(x_max)) for y in range(int(y_min), int(y_max))]
+
+        heatmap = np.zeros(image_size[::-1])  # Empty heatmap
+        for x, y in points:
+            heatmap += generate_gaussian_heatmap(image_size, (x, y), intensity=1.0, sigma=1)
+
+        heatmap = np.clip(heatmap, 0, 1)  # Normalize
+
+        heatmap_path = os.path.join(app.config['UPLOAD_FOLDER'], 'heatmap.png')
+        plt.imsave(heatmap_path, heatmap, cmap='gray')
+
+        segmented_output = segment_image(image, heatmap)
+        segmented_image_path = visualize_segmentation(segmented_output, image_size)
+
+        return jsonify({'heatmap': heatmap_path, 'segmented_image': segmented_image_path})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/static/<path:filename>')

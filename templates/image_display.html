@@ -390,8 +390,8 @@
 </body>
 </html> -->
 
-
-<!DOCTYPE html>
+<!-- WORKING BOTH -->
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -512,6 +512,180 @@
     <select id="modeSelect" onchange="changeMode()">
         <option value="point">Point</option>
         <option value="scribble">Scribble</option>
+    </select>
+    <br><br>
+    <img id="uploadedImage" src="{{ image_path }}" 
+         onclick="sendClick(event)" 
+         onmousedown="startDrawing(event)" 
+         onmousemove="draw(event)" 
+         onmouseup="stopDrawing(event)" 
+         onmouseleave="stopDrawing(event)" 
+         style="max-width: 100%; cursor: crosshair; user-select: none; position: relative;">
+
+    <h2>Heatmap</h2>
+    <img id="heatmapResult" src="" style="max-width: 100%;">
+    
+    <h2>Segmented Image</h2>
+    <img id="segmentedResult" src="" style="max-width: 100%;">
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image Interaction</title>
+    <style>
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+    </style>
+    <script>
+        let mode = "point";
+        let drawing = false;
+        let strokePoints = [];
+        let startX, startY, endX, endY;
+        let canvas, ctx;
+
+        function changeMode() {
+            mode = document.getElementById("modeSelect").value;
+        }
+
+        function sendClick(event) {
+            if (mode !== "point") return;
+            let img = document.getElementById("uploadedImage");
+            let rect = img.getBoundingClientRect();
+            let x = (event.clientX - rect.left).toFixed(2);
+            let y = (event.clientY - rect.top).toFixed(2);
+            let imagePath = img.getAttribute("src");
+
+            fetch('/process_click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ x: x, y: y, image_path: imagePath })
+            })
+            .then(response => response.json())
+            .then(updateResults);
+        }
+
+        window.onload = function() {
+            let img = document.getElementById("uploadedImage");
+            canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            canvas.style.position = "absolute";
+            canvas.style.top = img.offsetTop + "px";
+            canvas.style.left = img.offsetLeft + "px";
+            document.body.appendChild(canvas);
+            ctx = canvas.getContext("2d");
+        };
+
+        function startDrawing(event) {
+            event.preventDefault(); // Prevent image movement
+            let img = document.getElementById("uploadedImage");
+            let rect = img.getBoundingClientRect();
+            startX = event.clientX - rect.left;
+            startY = event.clientY - rect.top;
+            drawing = true;
+            strokePoints = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function draw(event) {
+            event.preventDefault(); // Prevent dragging behavior
+            if (!drawing) return;
+            let img = document.getElementById("uploadedImage");
+            let rect = img.getBoundingClientRect();
+            let x = event.clientX - rect.left;
+            let y = event.clientY - rect.top;
+
+            if (mode === "scribble") {
+                addPoint(event, true);
+            } else if (mode === "bounding_box") {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = "blue";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(startX, startY, x - startX, y - startY);
+                endX = x;
+                endY = y;
+            }
+        }
+
+
+        function stopDrawing(event) {
+            if (!drawing) return;
+            drawing = false;
+            if (mode === "scribble" && strokePoints.length > 0) {
+                sendStroke();
+            } else if (mode === "bounding_box") {
+                sendBoundingBox();
+            }
+        }
+
+        function addPoint(event, drawLine) {
+            let img = document.getElementById("uploadedImage");
+            let rect = img.getBoundingClientRect();
+            let x = event.clientX - rect.left;
+            let y = event.clientY - rect.top;
+            strokePoints.push({ x: x.toFixed(2), y: y.toFixed(2) });
+
+            if (drawLine && strokePoints.length > 1) {
+                let lastPoint = strokePoints[strokePoints.length - 2];
+                ctx.beginPath();
+                ctx.moveTo(lastPoint.x, lastPoint.y);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = "red";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        function sendStroke() {
+            let img = document.getElementById("uploadedImage");
+            let imagePath = img.getAttribute("src");
+
+            fetch('/process_scribble', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ points: strokePoints, image_path: imagePath })
+            })
+            .then(response => response.json())
+            .then(updateResults);
+        }
+
+        function sendBoundingBox() {
+            let img = document.getElementById("uploadedImage");
+            let imagePath = img.getAttribute("src");
+
+            fetch('/process_bounding_box', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ startX: startX.toFixed(2), startY: startY.toFixed(2), endX: endX.toFixed(2), endY: endY.toFixed(2), image_path: imagePath })
+            })
+            .then(response => response.json())
+            .then(updateResults);
+        }
+
+        function updateResults(data) {
+            if (data.segmented_image) {
+                document.getElementById("segmentedResult").src = data.segmented_image;
+            }
+            if (data.heatmap) {
+                document.getElementById("heatmapResult").src = data.heatmap;
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Image Interaction</h1>
+    <label for="modeSelect">Select Mode:</label>
+    <select id="modeSelect" onchange="changeMode()">
+        <option value="point">Point</option>
+        <option value="scribble">Scribble</option>
+        <option value="bounding_box">Bounding Box</option>
     </select>
     <br><br>
     <img id="uploadedImage" src="{{ image_path }}" 
