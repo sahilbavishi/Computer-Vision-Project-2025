@@ -1,0 +1,230 @@
+2025-03-29 18:10:15.822792: E external/local_xla/xla/stream_executor/cuda/cuda_dnn.cc:9261] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2025-03-29 18:10:15.833017: E external/local_xla/xla/stream_executor/cuda/cuda_fft.cc:607] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2025-03-29 18:10:16.396709: E external/local_xla/xla/stream_executor/cuda/cuda_blas.cc:1515] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2025-03-29 18:10:17.773515: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-03-29 18:10:26.498545: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/home/s2677266/miniconda3/envs/mlsys/lib/python3.10/site-packages/albumentations/check_version.py:107: UserWarning: Error fetching version info <urlopen error timed out>
+  data = fetch_version_info()
+/home/s2677266/miniconda3/envs/mlsys/lib/python3.10/site-packages/open_clip/factory.py:388: UserWarning: These pretrained weights were trained with QuickGELU activation but the model config does not have that enabled. Consider using a model config with a "-quickgelu" suffix or enable with a flag.
+  warnings.warn(
+/home/s2677266/CVis/Clip.py:294: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler()
+Input set size: 3680
+
+Q3 width and height values (both 500 pixels) were chosen for resizing.
+Using previously resized images and labels (500x500).
+Using previously augmented data.
+Train set size: 7788 (80.0%)
+Valid set size: 1948 (20.0%)
+ Test set size: 3710
+
+Input dimension: (256, 256, 3)
+Batches' size: 4
+*****************************************************
+Loaded 9736 CLIP feature tensors.
+*****************************************************
+Training Progress:   0%|          | 0/100 [00:00<?, ?it/s]/home/s2677266/CVis/Clip.py:311: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast():
+Training Progress:   1%|          | 1/100 [09:02<14:55:37, 542.80s/it]Training Progress:   2%|▏         | 2/100 [17:52<14:33:35, 534.85s/it]Training Progress:   3%|▎         | 3/100 [26:42<14:21:14, 532.73s/it]Training Progress:   4%|▍         | 4/100 [35:32<14:10:36, 531.63s/it]Training Progress:   5%|▌         | 5/100 [44:19<13:59:24, 530.15s/it]Training Progress:   6%|▌         | 6/100 [53:13<13:52:17, 531.25s/it]Training Progress:   7%|▋         | 7/100 [1:02:03<13:42:53, 530.90s/it]Training Progress:   8%|▊         | 8/100 [1:10:51<13:32:39, 529.99s/it]Training Progress:   9%|▉         | 9/100 [1:19:39<13:23:03, 529.49s/it]Training Progress:  10%|█         | 10/100 [1:28:26<13:12:53, 528.60s/it]Training Progress:  11%|█         | 11/100 [1:37:13<13:03:27, 528.17s/it]Training Progress:  12%|█▏        | 12/100 [1:46:02<12:55:07, 528.50s/it]Training Progress:  13%|█▎        | 13/100 [1:55:03<12:51:39, 532.18s/it]Training Progress:  14%|█▍        | 14/100 [2:03:51<12:41:01, 530.95s/it]Training Progress:  15%|█▌        | 15/100 [2:12:39<12:30:44, 529.93s/it]Training Progress:  16%|█▌        | 16/100 [2:21:28<12:21:44, 529.81s/it]Training Progress:  17%|█▋        | 17/100 [2:30:19<12:13:27, 530.21s/it]Training Progress:  18%|█▊        | 18/100 [2:39:07<12:03:37, 529.48s/it]Training Progress:  19%|█▉        | 19/100 [2:47:57<11:54:59, 529.63s/it]Training Progress:  20%|██        | 20/100 [2:56:45<11:45:27, 529.10s/it]Training Progress:  21%|██        | 21/100 [3:05:41<11:39:20, 531.15s/it]Training Progress:  22%|██▏       | 22/100 [3:14:35<11:31:35, 531.99s/it]Training Progress:  23%|██▎       | 23/100 [3:23:27<11:22:48, 532.06s/it]Training Progress:  24%|██▍       | 24/100 [3:32:50<11:25:43, 541.37s/it]Training Progress:  25%|██▌       | 25/100 [3:41:47<11:15:02, 540.04s/it]Training Progress:  26%|██▌       | 26/100 [3:50:56<11:09:24, 542.76s/it]Training Progress:  27%|██▋       | 27/100 [4:00:27<11:10:44, 551.30s/it]Training Progress:  28%|██▊       | 28/100 [4:09:42<11:02:49, 552.35s/it]Training Progress:  29%|██▉       | 29/100 [4:19:21<11:02:59, 560.28s/it]Training Progress:  30%|███       | 30/100 [4:28:17<10:45:03, 552.91s/it]Training Progress:  31%|███       | 31/100 [4:37:14<10:30:25, 548.20s/it]Training Progress:  32%|███▏      | 32/100 [4:46:14<10:18:26, 545.69s/it]Training Progress:  33%|███▎      | 33/100 [4:55:12<10:06:43, 543.34s/it]Training Progress:  34%|███▍      | 34/100 [5:04:06<9:54:48, 540.73s/it] Training Progress:  35%|███▌      | 35/100 [5:13:04<9:44:46, 539.80s/it]Training Progress:  36%|███▌      | 36/100 [5:22:00<9:34:44, 538.82s/it]Training Progress:  37%|███▋      | 37/100 [5:30:57<9:25:05, 538.18s/it]Training Progress:  38%|███▊      | 38/100 [5:40:21<9:23:57, 545.77s/it]Training Progress:  39%|███▉      | 39/100 [5:49:38<9:18:32, 549.39s/it]Training Progress:  40%|████      | 40/100 [5:58:40<9:07:08, 547.14s/it]Training Progress:  41%|████      | 41/100 [6:07:39<8:55:40, 544.75s/it]Training Progress:  42%|████▏     | 42/100 [6:16:37<8:44:38, 542.73s/it]Training Progress:  43%|████▎     | 43/100 [6:25:48<8:37:50, 545.09s/it]Training Progress:  44%|████▍     | 44/100 [6:35:16<8:35:09, 551.96s/it]Training Progress:  45%|████▌     | 45/100 [6:44:56<8:33:47, 560.50s/it]Training Progress:  46%|████▌     | 46/100 [6:54:39<8:30:29, 567.21s/it]Training Progress:  47%|████▋     | 47/100 [7:04:18<8:24:05, 570.66s/it]Training Progress:  48%|████▊     | 48/100 [7:13:45<8:13:33, 569.49s/it]Training Progress:  49%|████▉     | 49/100 [7:23:16<8:04:36, 570.13s/it]Training Progress:  50%|█████     | 50/100 [7:32:34<7:52:00, 566.41s/it]Training Progress:  51%|█████     | 51/100 [7:41:40<7:37:33, 560.28s/it]Training Progress:  52%|█████▏    | 52/100 [7:51:14<7:31:26, 564.31s/it]Training Progress:  53%|█████▎    | 53/100 [8:00:13<7:16:03, 556.68s/it]Training Progress:  54%|█████▍    | 54/100 [8:09:13<7:02:57, 551.68s/it]Training Progress:  55%|█████▌    | 55/100 [8:18:13<6:51:17, 548.39s/it]Training Progress:  56%|█████▌    | 56/100 [8:27:10<6:39:30, 544.78s/it]Training Progress:  57%|█████▋    | 57/100 [8:36:05<6:28:27, 542.03s/it]Training Progress:  58%|█████▊    | 58/100 [8:45:03<6:18:34, 540.82s/it]Training Progress:  59%|█████▉    | 59/100 [8:54:00<6:08:38, 539.48s/it]Training Progress:  60%|██████    | 60/100 [9:02:59<5:59:40, 539.50s/it]Training Progress:  61%|██████    | 61/100 [9:11:59<5:50:47, 539.67s/it]Training Progress:  62%|██████▏   | 62/100 [9:21:02<5:42:25, 540.68s/it]Training Progress:  63%|██████▎   | 63/100 [9:30:03<5:33:28, 540.77s/it]Training Progress:  64%|██████▍   | 64/100 [9:39:01<5:23:56, 539.92s/it]Training Progress:  65%|██████▌   | 65/100 [9:47:58<5:14:26, 539.05s/it]Training Progress:  66%|██████▌   | 66/100 [9:56:54<5:04:52, 538.03s/it]Training Progress:  67%|██████▋   | 67/100 [10:05:45<4:54:46, 535.94s/it]Training Progress:  68%|██████▊   | 68/100 [10:14:34<4:44:39, 533.74s/it]Training Progress:  69%|██████▉   | 69/100 [10:23:23<4:35:04, 532.41s/it]Training Progress:  70%|███████   | 70/100 [10:32:14<4:25:56, 531.89s/it]Training Progress:  71%|███████   | 71/100 [10:41:09<4:17:35, 532.95s/it]Training Progress:  72%|███████▏  | 72/100 [10:50:02<4:08:41, 532.90s/it]Training Progress:  73%|███████▎  | 73/100 [10:58:51<3:59:21, 531.92s/it]Training Progress:  74%|███████▍  | 74/100 [11:07:39<3:49:53, 530.50s/it]Training Progress:  75%|███████▌  | 75/100 [11:16:26<3:40:41, 529.67s/it]Training Progress:  76%|███████▌  | 76/100 [11:25:13<3:31:27, 528.64s/it]Training Progress:  77%|███████▋  | 77/100 [11:34:03<3:22:52, 529.22s/it]Training Progress:  78%|███████▊  | 78/100 [11:42:59<3:14:45, 531.15s/it]Training Progress:  79%|███████▉  | 79/100 [11:51:53<3:06:13, 532.08s/it]Training Progress:  80%|████████  | 80/100 [12:00:44<2:57:12, 531.62s/it]Training Progress:  81%|████████  | 81/100 [12:09:33<2:48:06, 530.86s/it]Training Progress:  82%|████████▏ | 82/100 [12:18:20<2:38:57, 529.85s/it]Training Progress:  83%|████████▎ | 83/100 [12:27:05<2:29:43, 528.43s/it]Training Progress:  84%|████████▍ | 84/100 [12:35:54<2:20:57, 528.62s/it]Training Progress:  85%|████████▌ | 85/100 [12:44:46<2:12:23, 529.59s/it]Training Progress:  86%|████████▌ | 86/100 [12:53:38<2:03:44, 530.31s/it]Training Progress:  87%|████████▋ | 87/100 [13:02:31<1:55:03, 531.04s/it]Training Progress:  88%|████████▊ | 88/100 [13:11:24<1:46:18, 531.52s/it]Training Progress:  89%|████████▉ | 89/100 [13:20:14<1:37:24, 531.27s/it]Training Progress:  90%|█████████ | 90/100 [13:29:04<1:28:29, 530.93s/it]Training Progress:  91%|█████████ | 91/100 [13:37:54<1:19:34, 530.52s/it]Training Progress:  92%|█████████▏| 92/100 [13:46:43<1:10:40, 530.06s/it]Training Progress:  93%|█████████▎| 93/100 [13:55:37<1:01:59, 531.33s/it]Training Progress:  94%|█████████▍| 94/100 [14:04:28<53:06, 531.03s/it]  Training Progress:  95%|█████████▌| 95/100 [14:13:20<44:16, 531.38s/it]Training Progress:  96%|█████████▌| 96/100 [14:22:11<35:25, 531.38s/it]Training Progress:  97%|█████████▋| 97/100 [14:31:01<26:32, 530.90s/it]Training Progress:  98%|█████████▊| 98/100 [14:39:48<17:39, 529.78s/it]Training Progress:  99%|█████████▉| 99/100 [14:48:39<08:50, 530.21s/it]Training Progress: 100%|██████████| 100/100 [14:57:28<00:00, 529.71s/it]Training Progress: 100%|██████████| 100/100 [14:57:28<00:00, 538.48s/it]
+Epoch [1/100] Running:
+Epoch [1/100], Loss: 0.8176
+Epoch [2/100] Running:
+Epoch [2/100], Loss: 0.6981
+Epoch [3/100] Running:
+Epoch [3/100], Loss: 0.6427
+Epoch [4/100] Running:
+Epoch [4/100], Loss: 0.6031
+Epoch [5/100] Running:
+Epoch [5/100], Loss: 0.5850
+Epoch [6/100] Running:
+Epoch [6/100], Loss: 0.5453
+Epoch [7/100] Running:
+Epoch [7/100], Loss: 0.5323
+Epoch [8/100] Running:
+Epoch [8/100], Loss: 0.5261
+Epoch [9/100] Running:
+Epoch [9/100], Loss: 0.5184
+Epoch [10/100] Running:
+Epoch [10/100], Loss: 0.5111
+Epoch [11/100] Running:
+Epoch [11/100], Loss: 0.4920
+Epoch [12/100] Running:
+Epoch [12/100], Loss: 0.4869
+Epoch [13/100] Running:
+Epoch [13/100], Loss: 0.4835
+Epoch [14/100] Running:
+Epoch [14/100], Loss: 0.4809
+Epoch [15/100] Running:
+Epoch [15/100], Loss: 0.4774
+Epoch [16/100] Running:
+Epoch [16/100], Loss: 0.4675
+Epoch [17/100] Running:
+Epoch [17/100], Loss: 0.4655
+Epoch [18/100] Running:
+Epoch [18/100], Loss: 0.4635
+Epoch [19/100] Running:
+Epoch [19/100], Loss: 0.4616
+Epoch [20/100] Running:
+Epoch [20/100], Loss: 0.4602
+Epoch [21/100] Running:
+Epoch [21/100], Loss: 0.4552
+Epoch [22/100] Running:
+Epoch [22/100], Loss: 0.4541
+Epoch [23/100] Running:
+Epoch [23/100], Loss: 0.4534
+Epoch [24/100] Running:
+Epoch [24/100], Loss: 0.4526
+Epoch [25/100] Running:
+Epoch [25/100], Loss: 0.4516
+Epoch [26/100] Running:
+Epoch [26/100], Loss: 0.4488
+Epoch [27/100] Running:
+Epoch [27/100], Loss: 0.4484
+Epoch [28/100] Running:
+Epoch [28/100], Loss: 0.4480
+Epoch [29/100] Running:
+Epoch [29/100], Loss: 0.4475
+Epoch [30/100] Running:
+Epoch [30/100], Loss: 0.4472
+Epoch [31/100] Running:
+Epoch [31/100], Loss: 0.4458
+Epoch [32/100] Running:
+Epoch [32/100], Loss: 0.4456
+Epoch [33/100] Running:
+Epoch [33/100], Loss: 0.4454
+Epoch [34/100] Running:
+Epoch [34/100], Loss: 0.4451
+Epoch [35/100] Running:
+Epoch [35/100], Loss: 0.4449
+Epoch [36/100] Running:
+Epoch [36/100], Loss: 0.4442
+Epoch [37/100] Running:
+Epoch [37/100], Loss: 0.4440
+Epoch [38/100] Running:
+Epoch [38/100], Loss: 0.4440
+Epoch [39/100] Running:
+Epoch [39/100], Loss: 0.4438
+Epoch [40/100] Running:
+Epoch [40/100], Loss: 0.4437
+Epoch [41/100] Running:
+Epoch [41/100], Loss: 0.4434
+Epoch [42/100] Running:
+Epoch [42/100], Loss: 0.4433
+Epoch [43/100] Running:
+Epoch [43/100], Loss: 0.4432
+Epoch [44/100] Running:
+Epoch [44/100], Loss: 0.4432
+Epoch [45/100] Running:
+Epoch [45/100], Loss: 0.4431
+Epoch [46/100] Running:
+Epoch [46/100], Loss: 0.4429
+Epoch [47/100] Running:
+Epoch [47/100], Loss: 0.4429
+Epoch [48/100] Running:
+Epoch [48/100], Loss: 0.4429
+Epoch [49/100] Running:
+Epoch [49/100], Loss: 0.4429
+Epoch [50/100] Running:
+Epoch [50/100], Loss: 0.4428
+Epoch [51/100] Running:
+Epoch [51/100], Loss: 0.4427
+Epoch [52/100] Running:
+Epoch [52/100], Loss: 0.4427
+Epoch [53/100] Running:
+Epoch [53/100], Loss: 0.4427
+Epoch [54/100] Running:
+Epoch [54/100], Loss: 0.4426
+Epoch [55/100] Running:
+Epoch [55/100], Loss: 0.4426
+Epoch [56/100] Running:
+Epoch [56/100], Loss: 0.4426
+Epoch [57/100] Running:
+Epoch [57/100], Loss: 0.4426
+Epoch [58/100] Running:
+Epoch [58/100], Loss: 0.4425
+Epoch [59/100] Running:
+Epoch [59/100], Loss: 0.4425
+Epoch [60/100] Running:
+Epoch [60/100], Loss: 0.4426
+Epoch [61/100] Running:
+Epoch [61/100], Loss: 0.4425
+Epoch [62/100] Running:
+Epoch [62/100], Loss: 0.4425
+Epoch [63/100] Running:
+Epoch [63/100], Loss: 0.4426
+Epoch [64/100] Running:
+Epoch [64/100], Loss: 0.4425
+Epoch [65/100] Running:
+Epoch [65/100], Loss: 0.4425
+Epoch [66/100] Running:
+Epoch [66/100], Loss: 0.4425
+Epoch [67/100] Running:
+Epoch [67/100], Loss: 0.4425
+Epoch [68/100] Running:
+Epoch [68/100], Loss: 0.4425
+Epoch [69/100] Running:
+Epoch [69/100], Loss: 0.4425
+Epoch [70/100] Running:
+Epoch [70/100], Loss: 0.4425
+Epoch [71/100] Running:
+Epoch [71/100], Loss: 0.4425
+Epoch [72/100] Running:
+Epoch [72/100], Loss: 0.4425
+Epoch [73/100] Running:
+Epoch [73/100], Loss: 0.4425
+Epoch [74/100] Running:
+Epoch [74/100], Loss: 0.4425
+Epoch [75/100] Running:
+Epoch [75/100], Loss: 0.4425
+Epoch [76/100] Running:
+Epoch [76/100], Loss: 0.4425
+Epoch [77/100] Running:
+Epoch [77/100], Loss: 0.4425
+Epoch [78/100] Running:
+Epoch [78/100], Loss: 0.4425
+Epoch [79/100] Running:
+Epoch [79/100], Loss: 0.4425
+Epoch [80/100] Running:
+Epoch [80/100], Loss: 0.4425
+Epoch [81/100] Running:
+Epoch [81/100], Loss: 0.4425
+Epoch [82/100] Running:
+Epoch [82/100], Loss: 0.4425
+Epoch [83/100] Running:
+Epoch [83/100], Loss: 0.4425
+Epoch [84/100] Running:
+Epoch [84/100], Loss: 0.4425
+Epoch [85/100] Running:
+Epoch [85/100], Loss: 0.4425
+Epoch [86/100] Running:
+Epoch [86/100], Loss: 0.4425
+Epoch [87/100] Running:
+Epoch [87/100], Loss: 0.4425
+Epoch [88/100] Running:
+Epoch [88/100], Loss: 0.4425
+Epoch [89/100] Running:
+Epoch [89/100], Loss: 0.4425
+Epoch [90/100] Running:
+Epoch [90/100], Loss: 0.4425
+Epoch [91/100] Running:
+Epoch [91/100], Loss: 0.4425
+Epoch [92/100] Running:
+Epoch [92/100], Loss: 0.4424
+Epoch [93/100] Running:
+Epoch [93/100], Loss: 0.4425
+Epoch [94/100] Running:
+Epoch [94/100], Loss: 0.4425
+Epoch [95/100] Running:
+Epoch [95/100], Loss: 0.4425
+Epoch [96/100] Running:
+Epoch [96/100], Loss: 0.4425
+Epoch [97/100] Running:
+Epoch [97/100], Loss: 0.4425
+Epoch [98/100] Running:
+Epoch [98/100], Loss: 0.4425
+Epoch [99/100] Running:
+Epoch [99/100], Loss: 0.4425
+Epoch [100/100] Running:
+Epoch [100/100], Loss: 0.4425
+Training complete!
